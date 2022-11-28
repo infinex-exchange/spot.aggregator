@@ -5,15 +5,11 @@ function updateAllMarkets() {
     
     if($debug) echo "Update all markets\n";
     
-    $sql = 'SELECT pairid, initial_price FROM spot_markets';
+    $sql = 'SELECT pairid FROM spot_markets';
     $q = $pdo -> query($sql);
     
     while($pair = $q -> fetch(PDO::FETCH_ASSOC)) {
         if($debug) echo 'Processing '.$pair['pairid']."\n";
-        
-        $task = array(
-            ':pairid' => $pair['pairid']
-        );
         
         $sql = "SELECT LAST(price, time) AS price
                 FROM spot_trades_with_initial
@@ -77,12 +73,24 @@ function updateAllMarkets() {
             if($debug) echo "Need to insert\n";
             
             $task = array(
+                ':pairid' => $pair['pairid']
+            );
+            
+            $sql = "SELECT LAST(price, time) AS price
+                    FROM spot_trades_with_initial
+                    AND pairid = :pairid";
+            
+            $q2 = $pdo -> prepare($sql);
+            $q2 -> execute($task);
+            $lastEver = $q2 -> fetch(PDO::FETCH_ASSOC);
+            
+            $task = array(
                 ':pairid' => $pair['pairid'],
-                ':init' => $pair['initial_price'],
-                ':init2' => $pair['initial_price'],
-                ':init3' => $pair['initial_price'],
-                ':init4' => $pair['initial_price'],
-                ':init5' => $pair['initial_price']
+                ':init' => $lastEver['price'],
+                ':init2' => $lastEver['price'],
+                ':init3' => $lastEver['price'],
+                ':init4' => $lastEver['price'],
+                ':init5' => $lastEver['price']
             );
             
             $sql = 'INSERT INTO spot_tickers_v2_data(
