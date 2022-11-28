@@ -11,7 +11,7 @@ function updateMarket($pairid, $price, $amount, $total) {
         ':total' => $total
     );
     
-    $sql = 'UPDATE spot_markets_v2_data
+    $sql = 'UPDATE spot_tickers_v2_data
             SET refresh_time = current_timestamp,
                 previous = price,
                 price = :price,
