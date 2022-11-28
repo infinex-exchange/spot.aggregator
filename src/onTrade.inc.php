@@ -8,11 +8,8 @@ function onTrade(AMQPMessage $msgIn) {
     try {
         $body = json_decode($msgIn -> body, true);
         $headers = $msgIn->get('application_headers')->getNativeData();
-    
-        if($debug) echo "Headers:\n".json_encode($headers, JSON_PRETTY_PRINT)."\nBody:\n".$msgIn->body."\n\n";
         
-        echo $headers['pairid'];
-        echo $msgIn -> body['price'];
+        updateMarket($headers['pairid'], $body['price'], $body['amount'], $body['total']);
         
         $msgIn -> ack();
     }

@@ -4,6 +4,8 @@
 include_once __DIR__.'/config.inc.php';
 require __DIR__.'/vendor/autoload.php';
 include __DIR__.'/src/onTrade.inc.php';
+include __DIR__.'/src/updateMarket.inc.php';
+include __DIR__.'/src/updateAllMarkets.inc.php';
 
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Exchange\AMQPExchangeType;
@@ -99,6 +101,10 @@ while(true) {
             if($debug) echo "Ping database\n";
             $pdo -> query('SELECT 1');
         });
+        
+        // ----- EVERY 60 SEC: update all markets -----
+        $loop->addPeriodicTimer(60, updateAllMarkets);
+        updateAllMarkets();
 
         // ----- Main loop -----
         if($debug) echo "Starting event loop\n";
