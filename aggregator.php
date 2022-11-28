@@ -103,7 +103,7 @@ while(true) {
         });
         
         // ----- EVERY 60 SEC: update all markets -----
-        $loop->addPeriodicTimer(60, updateAllMarkets);
+        $loop->addPeriodicTimer(60, 'updateAllMarkets');
         updateAllMarkets();
 
         // ----- Main loop -----

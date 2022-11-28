@@ -48,13 +48,13 @@ function updateAllMarkets() {
             ':change_reference' => $before24h['price'],
             ':change_reference2' => $before24h['price'],
             ':change_reference3' => $before24h['price'],
-            ':vol_base' => $this24h['vol_base'],
-            ':vol_quote' => $this24h['vol_quote'],
-            ':high' => $this24h['high'],
-            ':low' => $this24h['low']
+            ':vol_base' => $last24h['vol_base'],
+            ':vol_quote' => $last24h['vol_quote'],
+            ':high' => $last24h['high'],
+            ':low' => $last24h['low']
         );
         
-        $sql = 'UPDATE spot_markets_v2_data
+        $sql = 'UPDATE spot_tickers_v2_data
                 SET refresh_time = current_timestamp,
                     change_reference = :change_reference,
                     change = ROUND(
@@ -85,7 +85,7 @@ function updateAllMarkets() {
                 ':init5' => $pair['initial_price']
             );
             
-            $sql = 'INSERT INTO spot_markets_v2_data(
+            $sql = 'INSERT INTO spot_tickers_v2_data(
                         pairid,
                         refresh_time,
                         price,
