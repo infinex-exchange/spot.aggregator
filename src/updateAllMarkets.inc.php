@@ -11,6 +11,10 @@ function updateAllMarkets() {
     while($pair = $q -> fetch(PDO::FETCH_ASSOC)) {
         if($debug) echo 'Processing '.$pair['pairid']."\n";
         
+        $task = array(
+            ':pairid' => $pair['pairid']
+        );
+        
         $sql = "SELECT LAST(price, time) AS price
                 FROM spot_trades_with_initial
                 WHERE time < NOW() - INTERVAL '1 day'
