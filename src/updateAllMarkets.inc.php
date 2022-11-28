@@ -114,5 +114,6 @@ function updateAllMarkets() {
             $q2 -> execute($task);
         }
     }
+}
 
 ?>
