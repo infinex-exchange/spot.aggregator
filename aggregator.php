@@ -7,6 +7,7 @@ include __DIR__.'/src/onTrade.inc.php';
 
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Exchange\AMQPExchangeType;
+use PhpAmqpLib\Wire;
 
 // Debug mode
 
