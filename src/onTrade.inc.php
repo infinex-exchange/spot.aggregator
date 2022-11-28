@@ -11,8 +11,8 @@ function onTrade(AMQPMessage $msgIn) {
     
         if($debug) echo "Headers:\n".json_encode($headers, JSON_PRETTY_PRINT)."\nBody:\n".$msgIn->body."\n\n";
         
-        echo $headers -> pairid;
-        echo $msgIn -> body -> price;
+        echo $headers['pairid'];
+        echo $msgIn -> body['price'];
         
         $msgIn -> ack();
     }
