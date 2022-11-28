@@ -82,7 +82,7 @@ function updateAllMarkets() {
             
             $sql = "SELECT LAST(price, time) AS price
                     FROM spot_trades_with_initial
-                    AND pairid = :pairid";
+                    WHERE pairid = :pairid";
             
             $q2 = $pdo -> prepare($sql);
             $q2 -> execute($task);
