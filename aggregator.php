@@ -57,7 +57,10 @@ while(true) {
                 $channel = $rmq -> channel();
                 
                 $channel -> exchange_declare('outEvents', AMQPExchangeType::HEADERS, false, true); // durable
-                $queueName = 'aggregator';
+                
+                
+                
+                $queueName = 'aggregator_trade';
                 $channel -> queue_declare($queueName, false, false, false, true); // auto delete
                     
                 $channel -> queue_bind($queueName, 'outEvents', '', false, new Wire\AMQPTable([
@@ -65,6 +68,25 @@ while(true) {
                 ]));
                     
                 $channel -> basic_consume($queueName, "ct_$queueName", false, false, false, false, 'onTrade');
+                
+                
+                
+                $queueName = 'aggregator_order';
+                $channel -> queue_declare($queueName, false, false, false, true); // auto delete
+                    
+                $channel -> queue_bind($queueName, 'outEvents', '', false, new Wire\AMQPTable([
+                    'event' => 'orderAccepted',
+                    'affects_orderbook' => true
+                ]));
+                
+                $channel -> queue_bind($queueName, 'outEvents', '', false, new Wire\AMQPTable([
+                    'event' => 'orderUpdate',
+                    'affects_orderbook' => true
+                ]));
+                    
+                $channel -> basic_consume($queueName, "ct_$queueName", false, false, false, false, 'onOrderAcceptedCanceled');
+                
+                
                 
                 break;
             }
