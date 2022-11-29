@@ -34,10 +34,10 @@ function onOrderAcceptedCanceled(AMQPMessage $msgIn) {
             $sign = '+';
         
         else if($headers['event'] == 'orderUpdate') {
-            if($headers['triggered'] == true)
+            if(isset($headers['triggered']) && $headers['triggered'] == true)
                 $sign = '+';
             
-            else if($headers['status'] == 'CANCELED')
+            else if(isset($headers['status']) && $headers['status'] == 'CANCELED')
                 $sign = '-';
         }
         
