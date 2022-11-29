@@ -22,10 +22,14 @@ function updateMarket($pairid, $price, $amount, $total) {
                 ),
                 vol_base = vol_base + :amount,
                 vol_quote = vol_quote + :total
-            WHERE pairid = :pairid';
+            WHERE pairid = :pairid
+            RETURNING *';
     
     $q = $pdo -> prepare($sql);
     $q -> execute($task);
+    $row = $q -> fetch(PDO::FETCH_ASSOC);
+    
+    emitAggTicker($row);
     
     if($debug) echo 'Updated market '.$pairid."\n";
 }

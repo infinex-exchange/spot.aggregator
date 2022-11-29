@@ -6,6 +6,7 @@ require __DIR__.'/vendor/autoload.php';
 include __DIR__.'/src/onTrade.inc.php';
 include __DIR__.'/src/updateMarket.inc.php';
 include __DIR__.'/src/updateAllMarkets.inc.php';
+include __DIR__.'/src/emitAggTicker.inc.php';
 
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Exchange\AMQPExchangeType;
@@ -102,8 +103,8 @@ while(true) {
             $pdo -> query('SELECT 1');
         });
         
-        // ----- EVERY 60 SEC: update all markets -----
-        $loop->addPeriodicTimer(60, 'updateAllMarkets');
+        // ----- EVERY 5min: update all markets -----
+        $loop->addPeriodicTimer(300, 'updateAllMarkets');
         updateAllMarkets();
 
         // ----- Main loop -----

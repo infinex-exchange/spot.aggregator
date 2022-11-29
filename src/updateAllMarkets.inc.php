@@ -67,13 +67,16 @@ function updateAllMarkets() {
                     vol_base = :vol_base,
                     vol_quote = :vol_quote
                 WHERE pairid = :pairid
-                RETURNING pairid';
+                RETURNING *';
         
         $q2 = $pdo -> prepare($sql);
         $q2 -> execute($task);
         $row = $q2 -> fetch(PDO::FETCH_ASSOC);
         
-        if(!$row) {
+        if($row) {
+            emitAggTicker($row);
+        }
+        else {
             if($debug) echo "Need to insert\n";
             
             $task = array(
