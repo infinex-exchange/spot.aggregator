@@ -3,10 +3,13 @@
 
 include_once __DIR__.'/config.inc.php';
 require __DIR__.'/vendor/autoload.php';
-include __DIR__.'/src/onTrade.inc.php';
+include __DIR__.'/src/event_handlers.inc.php';
 include __DIR__.'/src/updateMarket.inc.php';
 include __DIR__.'/src/updateAllMarkets.inc.php';
 include __DIR__.'/src/emitAggTicker.inc.php';
+include __DIR__.'/src/rebuildOrderbook.inc.php';
+include __DIR__.'/src/updateOrderbook.inc.php';
+include __DIR__.'/src/emitAggOrderbook.inc.php';
 
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Exchange\AMQPExchangeType;
@@ -106,6 +109,8 @@ while(true) {
         // ----- EVERY 5min: update all markets -----
         $loop->addPeriodicTimer(300, 'updateAllMarkets');
         updateAllMarkets();
+        
+        rebuildOrderbook();
 
         // ----- Main loop -----
         if($debug) echo "Starting event loop\n";
