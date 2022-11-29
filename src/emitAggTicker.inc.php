@@ -4,12 +4,14 @@ use PhpAmqpLib\Wire;
 use PhpAmqpLib\Message\AMQPMessage;
 
 function emitAggTicker($tickRow) {
+    global $channel;
+    
     $headers = new Wire\AMQPTable([
         'event' => 'aggTicker',
         'pairid' => $tickRow['pairid'],
     ]);
     
-    $tmpEvent['body'] = array(
+    $body = array(
         'price' => $tickRow['price'],
         'change' => $tickRow['change'],
         'previous' => $tickRow['previous'],
