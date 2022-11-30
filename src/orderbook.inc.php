@@ -85,8 +85,8 @@ function updateOrderbook($pairid, $side, $price, $sign, $amount) {
     
     if($debug) echo 'Updated orderbook for '.$pairid."\n";
     
-    if($redis)
-        $redis -> del("spot:orderbook:$pairid:$side");
+    /*if($redis)
+        $redis -> del("spot:orderbook:$pairid:$side");*/
 }
 
 function rebuildOrderbook() {
@@ -117,8 +117,8 @@ function rebuildOrderbook() {
     
     $pdo -> commit();
     
-    if($redis)
-        $redis -> del($redis -> keys('spot:orderbook:*'));
+    /*if($redis)
+        $redis -> del($redis -> keys('spot:orderbook:*'));*/
 }
 
 function emitAggOrderbook($pairid, $side, $price, $amount) {
