@@ -4,12 +4,9 @@
 include_once __DIR__.'/config.inc.php';
 require __DIR__.'/vendor/autoload.php';
 include __DIR__.'/src/event_handlers.inc.php';
-include __DIR__.'/src/updateMarket.inc.php';
-include __DIR__.'/src/updateAllMarkets.inc.php';
-include __DIR__.'/src/emitAggTicker.inc.php';
-include __DIR__.'/src/rebuildOrderbook.inc.php';
-include __DIR__.'/src/updateOrderbook.inc.php';
-include __DIR__.'/src/emitAggOrderbook.inc.php';
+include __DIR__.'/src/markets.inc.php';
+include __DIR__.'/src/orderbook.inc.php';
+include __DIR__.'/src/trades.inc.php';
 
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Exchange\AMQPExchangeType;
@@ -27,6 +24,7 @@ $loop = null;
 $rmq = null;
 $channel = null;
 $pdo = null;
+$redis = null;
 
 while(true) {
     try {
@@ -117,6 +115,18 @@ while(true) {
                 sleep(1);
             }
         }
+        
+        // ----- Init Redis -----
+        if($debug) echo "Initializing Redis connection\n";
+        
+        try {
+            $redis = new Redis();
+            if($debug) echo "Connected\n";
+        }
+        catch(Exception $e) {
+            $redis = null;
+            echo "Redis is unavailable !!!\n";
+        }
 
         if($debug) echo "Initializing timers\n";
         
@@ -128,11 +138,21 @@ while(true) {
             $pdo -> query('SELECT 1');
         });
         
-        // ----- EVERY 5min: update all markets -----
-        $loop->addPeriodicTimer(300, 'updateAllMarkets');
-        updateAllMarkets();
+        // ----- EVERY 5 SEC: redis ping -----
+        $loop->addPeriodicTimer(5, function () {
+            global $redis, $debug;
+    
+            if(!$redis) return;
+            
+            if($debug) echo "Ping Redis\n";
+            $redis -> ping();
+        });
         
+        // ----- EVERY 5min: update all markets -----
+        $loop->addPeriodicTimer(300, 'rebuildMarkets');
+        rebuildMarkets();
         rebuildOrderbook();
+        rebuildTrades();
 
         // ----- Main loop -----
         if($debug) echo "Starting event loop\n";

@@ -12,4 +12,7 @@ define('RMQ_PORT', 5672);
 define('RMQ_USER', 'aggregator');
 define('RMQ_PASS', 'password');
 
+define('REDIS_HOST' 'localhost');
+define('REDIS_PORT', 6379);
+
 ?>

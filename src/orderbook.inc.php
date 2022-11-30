@@ -1,9 +1,11 @@
 <?php
 
 use Decimal\Decimal;
+use PhpAmqpLib\Wire;
+use PhpAmqpLib\Message\AMQPMessage;
 
 function updateOrderbook($pairid, $side, $price, $sign, $amount) {
-    global $debug, $pdo;
+    global $debug, $pdo, $redis;
     
     if($sign != '-' && $sign != '+') return;
     
@@ -82,6 +84,60 @@ function updateOrderbook($pairid, $side, $price, $sign, $amount) {
     emitAggOrderbook($pairid, $side, $price, $newAmount);
     
     if($debug) echo 'Updated orderbook for '.$pairid."\n";
+    
+    if($redis)
+        $redis -> unlink("spot:orderbook:$pairid:$side");
+}
+
+function rebuildOrderbook() {
+    global $debug, $pdo, $redis;
+    
+    if($debug) echo "Rebuilding orderbook\n";
+    
+    $pdo -> beginTransaction();
+    
+    $sql = 'TRUNCATE TABLE spot_aggregated_orderbook_v2';
+    $pdo -> query($sql);
+    
+    $sql = 'INSERT INTO spot_aggregated_orderbook_v2(
+                pairid,
+                side,
+                price,
+                amount
+            )
+            SELECT pairid,
+                   side,
+                   price,
+                   SUM(amount-filled)
+            FROM spot_orderbook
+            GROUP BY pairid,
+                     side,
+                     price';
+    $pdo -> query($sql);
+    
+    $pdo -> commit();
+    
+    if($redis)
+        $redis -> unlink($redis -> keys('spot:orderbook:*'));
+}
+
+function emitAggOrderbook($pairid, $side, $price, $amount) {
+    global $channel;
+    
+    $headers = new Wire\AMQPTable([
+        'event' => 'aggOrderbook',
+        'pairid' => $pairid,
+    ]);
+    
+    $body = array(
+        'side' => $side,
+        'price' => $price,
+        'amount' => $amount
+    );
+    
+    $outMsg = new AMQPMessage(json_encode($body, JSON_PRETTY_PRINT));
+    $outMsg -> set('application_headers', $headers);
+    $channel -> basic_publish($outMsg, 'outEvents');
 }
 
 ?>

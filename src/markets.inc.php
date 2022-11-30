@@ -1,7 +1,48 @@
 <?php
 
-function updateAllMarkets() {
-    global $debug, $pdo;
+use PhpAmqpLib\Wire;
+use PhpAmqpLib\Message\AMQPMessage;
+
+function updateMarket($pairid, $price, $amount, $total) {
+    global $debug, $pdo, $redis;
+     
+    $task = array(
+        ':pairid' => $pairid,
+        ':price' => $price,
+        ':price2' => $price,
+        ':amount' => $amount,
+        ':total' => $total
+    );
+    
+    $sql = 'UPDATE spot_tickers_v2_data
+            SET refresh_time = current_timestamp,
+                previous = price,
+                price = :price,
+                change = ROUND(
+                    (:price2 - change_reference)
+                    / change_reference
+                    * 100
+                ),
+                vol_base = vol_base + :amount,
+                vol_quote = vol_quote + :total
+            WHERE pairid = :pairid
+            RETURNING *';
+    
+    $q = $pdo -> prepare($sql);
+    $q -> execute($task);
+    $row = $q -> fetch(PDO::FETCH_ASSOC);
+    
+    emitAggTicker($row);
+    
+    if($debug) echo 'Updated market '.$pairid."\n";
+    
+    /*if($redis) {
+        $redis -> unlink($redis -> keys('spot:markets:*'));
+    }*/
+}
+
+function rebuildMarkets() {
+    global $debug, $pdo, $redis;
     
     if($debug) echo "Update all markets\n";
     
@@ -129,6 +170,33 @@ function updateAllMarkets() {
             $q2 -> execute($task);
         }
     }
+    
+    /*if($redis) {
+        $redis -> unlink($redis -> keys('spot:markets:*'));
+    }*/
+}
+
+function emitAggTicker($tickRow) {
+    global $channel;
+    
+    $headers = new Wire\AMQPTable([
+        'event' => 'aggTicker',
+        'pairid' => $tickRow['pairid'],
+    ]);
+    
+    $body = array(
+        'price' => $tickRow['price'],
+        'change' => $tickRow['change'],
+        'previous' => $tickRow['previous'],
+        'high' => $tickRow['high'],
+        'low' => $tickRow['low'],
+        'vol_base' => $tickRow['vol_base'],
+        'vol_quote' => $tickRow['vol_quote']
+    );
+    
+    $outMsg = new AMQPMessage(json_encode($body, JSON_PRETTY_PRINT));
+    $outMsg -> set('application_headers', $headers);
+    $channel -> basic_publish($outMsg, 'outEvents');
 }
 
 ?>

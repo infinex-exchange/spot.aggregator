@@ -10,8 +10,8 @@ function onTrade(AMQPMessage $msgIn) {
         $headers = $msgIn->get('application_headers')->getNativeData();
         
         updateMarket($headers['pairid'], $body['price'], $body['amount'], $body['total']);
-        
         updateOrderbook($headers['pairid'], $body['maker_side'], $body['price'], '-', $body['amount']);
+        updateTrades($headers['pairid']);
         
         $msgIn -> ack();
     }
