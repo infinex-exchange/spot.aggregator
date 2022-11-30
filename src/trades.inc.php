@@ -5,9 +5,9 @@ function updateTrades($pairid) {
     
     if($debug) echo "Update trades $pairid\n";
     
-    if($redis) {
+    /*if($redis) {
         $redis -> unlink($redis -> keys('spot:trades:'.$pairid.':*'));
-    }
+    }*/
 }
 
 function rebuildTrades() {
@@ -15,9 +15,9 @@ function rebuildTrades() {
     
     if($debug) echo "Rebuilding trades\n";
     
-    if($redis) {
+    /*if($redis) {
         $redis -> unlink($redis -> keys('spot:trades:*'));
-    }
+    }*/
 }
 
 ?>
