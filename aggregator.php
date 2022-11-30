@@ -96,7 +96,7 @@ while(true) {
 
         $loop -> addPeriodicTimer(0.0001, function () use ($channel) {
             $channel -> wait(null, true);
-});
+        });
         
         // ----- Init PostgreSQL connection -----
         if($debug) echo "Connecting to PostgreSQL\n";

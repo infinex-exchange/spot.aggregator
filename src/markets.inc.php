@@ -36,9 +36,13 @@ function updateMarket($pairid, $price, $amount, $total) {
     
     if($debug) echo 'Updated market '.$pairid."\n";
     
-    /*if($redis) {
-        $redis -> unlink($redis -> keys('spot:markets:*'));
-    }*/
+    if($redis) {
+        $exp = explode('/', $pairid);
+        
+        $redis -> unlink($redis -> keys('spot:markets:quote=null:*'));
+        $redis -> unlink($redis -> keys('spot:markets:quote='.$exp[1].':*'));
+        $redis -> unlink($redis -> keys('spot:markets:quote=*:pair='.$pairid.':*'));
+    }
 }
 
 function rebuildMarkets() {
@@ -171,9 +175,9 @@ function rebuildMarkets() {
         }
     }
     
-    /*if($redis) {
+    if($redis) {
         $redis -> unlink($redis -> keys('spot:markets:*'));
-    }*/
+    }
 }
 
 function emitAggTicker($tickRow) {
