@@ -1,7 +1,13 @@
 {
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/infinex-exchange/common"
+        }
+    ],
     "require": {
-        "react/react": "^1.2",
-        "php-amqplib/php-amqplib": "^3.2",
-        "php-decimal/php-decimal": "^1.1"
+        "infinex-exchange/common": "dev-main",
+        "php-decimal/php-decimal": "^1.1",
+        "clue/redis-react:^3@dev"
     }
 }
