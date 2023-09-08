@@ -35,7 +35,8 @@ class EventHandler {
                 return $th -> onOrderAccepted($body, $headers);
             },
             'aggregator_order_accepted',
-            true
+            true,
+            [ 'affectsOrderbook' => true ]
         );
         
         $amqp -> sub(
@@ -44,7 +45,8 @@ class EventHandler {
                 return $th -> onOrderUpdate($body, $headers);
             },
             'aggregator_order_update',
-            true
+            true,
+            [ 'affectsOrderbook' => true ]
         );
     }
     

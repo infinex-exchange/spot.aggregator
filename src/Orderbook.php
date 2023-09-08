@@ -1,7 +1,5 @@
 <?php
 
-use Decimal\Decimal;
-
 class Orderbook {
     private $loop;
     private $log;
@@ -17,7 +15,7 @@ class Orderbook {
         $this -> log -> debug('Initialized tickers module');
     }
 
-    function updateOrderbook($pairid, $side, $price, $sign, $amount) {
+    public function updateOrderbook($pairid, $side, $price, $sign, $amount) {
         global $debug, $pdo, $redis;
         
         if($sign != '-' && $sign != '+') return;
@@ -47,8 +45,7 @@ class Orderbook {
         if($row) {
             $newAmount = $row['amount'];
             
-            $amountDec = new Decimal($row['amount']);
-            if($amountDec -> isZero()) {
+            if(trim($row['amount'], '0.') == '') { // amount == 0, without Decimal
                 $task = array(
                     ':pairid' => $pairid,
                     ':side' => $side,
@@ -94,12 +91,10 @@ class Orderbook {
         
         $pdo -> commit();
         
-        emitAggOrderbook($pairid, $side, $price, $newAmount);
+        $this -> redis -> unlink("spot:orderbook:$pairid:$side");
         
-        if($debug) echo 'Updated orderbook for '.$pairid."\n";
+        $this -> emitAggOrderbook($pairid, $side, $price, $newAmount);
         
-        if($redis)
-            $redis -> unlink("spot:orderbook:$pairid:$side");
     }
     
     function rebuildOrderbook() {
@@ -134,7 +129,7 @@ class Orderbook {
             $redis -> unlink($redis -> keys('spot:orderbook:*'));
     }
     
-    function emitAggOrderbook($pairid, $side, $price, $amount) {
+    private function emitAggOrderbook($pairid, $side, $price, $amount) {
         global $channel;
         
         $headers = new Wire\AMQPTable([
