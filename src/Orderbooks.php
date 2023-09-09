@@ -34,7 +34,7 @@ class Orderbooks {
         
         $q = $this -> pdo -> prepare($sql);
         $q -> execute($task);
-        $row = $q -> fetch(PDO::FETCH_ASSOC);
+        $row = $q -> fetch();
         
         $newAmount = NULL;
         

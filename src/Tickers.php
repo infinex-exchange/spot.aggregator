@@ -151,7 +151,7 @@ class Tickers {
                 
                 $q2 = $this -> pdo -> prepare($sql);
                 $q2 -> execute($task);
-                $lastEver = $q2 -> fetch(PDO::FETCH_ASSOC);
+                $lastEver = $q2 -> fetch();
                 
                 $task = array(
                     ':pairid' => $pair['pairid'],
