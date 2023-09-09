@@ -12,7 +12,7 @@ class App extends Infinex\App\Daemon {
     private $trades;
     
     function __construct() {
-        parent::__construct('auth.api-auth');
+        parent::__construct('spot.aggregator');
         
         $this -> pdo = new Infinex\Database\PDO($this -> loop, $this -> log);
         $this -> pdo -> start();

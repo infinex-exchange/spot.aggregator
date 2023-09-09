@@ -7,7 +7,6 @@
     ],
     "require": {
         "infinex-exchange/common": "dev-main",
-        "php-decimal/php-decimal": "^1.1",
         "clue/redis-react:^3@dev"
     }
 }
