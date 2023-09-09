@@ -15,7 +15,7 @@ class Tickers {
         $this -> log -> debug('Initialized tickers module');
     }
     
-    function updateMarket($pairid, $price, $amount, $total) {
+    public function updateTicker($pairid, $price, $amount, $total) {
         $task = array(
             ':pairid' => $pairid,
             ':price' => $price,
@@ -42,26 +42,36 @@ class Tickers {
         $q -> execute($task);
         $row = $q -> fetch();
         
+        $quote = explode('/', $pairid)[1];
+        
+        $th = $this;
+        $this -> redis -> keys('spot:markets:quote=null:*') -> then(
+            function($keys) use($th)
+                $th -> redis -> unlink(...$keys);
+            }
+        );
+        $this -> redis -> keys('spot:markets:quote='.$quote.':*') -> then(
+            function($keys) use($th)
+                $th -> redis -> unlink(...$keys);
+            }
+        );
+        $this -> redis -> keys('spot:markets:quote=*:pair='.$pairid.':*') -> then(
+            function($keys) use($th)
+                $th -> redis -> unlink(...$keys);
+            }
+        );
+        
         $this -> emitAggTicker($row);
-        
-        // -----
-        $exp = explode('/', $pairid);
-        
-        $redis -> unlink($redis -> keys('spot:markets:quote=null:*'));
-        $redis -> unlink($redis -> keys('spot:markets:quote='.$exp[1].':*'));
-        $redis -> unlink($redis -> keys('spot:markets:quote=*:pair='.$pairid.':*'));
     }
     
-    function rebuildMarkets() {
-        global $debug, $pdo, $redis;
-        
-        if($debug) echo "Update all markets\n";
+    public function rebuildTickers() {
+        $this -> log -> info('Rebuilding all tickers');
         
         $sql = 'SELECT pairid FROM spot_markets';
-        $q = $pdo -> query($sql);
+        $q = $this -> pdo -> query($sql);
         
-        while($pair = $q -> fetch(PDO::FETCH_ASSOC)) {
-            if($debug) echo 'Processing '.$pair['pairid']."\n";
+        while($pair = $q -> fetch()) {
+            $this -> log -> debug('Rebuilding ticker '.$pair['pairid']);
             
             $task = array(
                 ':pairid' => $pair['pairid']
@@ -72,9 +82,9 @@ class Tickers {
                     WHERE time < NOW() - INTERVAL '1 day'
                     AND pairid = :pairid";
             
-            $q2 = $pdo -> prepare($sql);
+            $q2 = $this -> pdo -> prepare($sql);
             $q2 -> execute($task);
-            $before24h = $q2 -> fetch(PDO::FETCH_ASSOC);
+            $before24h = $q2 -> fetch();
             
             $sql = "SELECT MAX(price) AS high,
                            MIN(price) AS low,
@@ -84,9 +94,9 @@ class Tickers {
                     WHERE time >= NOW() - INTERVAL '1 day'
                     AND pairid = :pairid";
             
-            $q2 = $pdo -> prepare($sql);
+            $q2 = $this -> pdo -> prepare($sql);
             $q2 -> execute($task);
-            $last24h = $q2 -> fetch(PDO::FETCH_ASSOC);
+            $last24h = $q2 -> fetch();
             
             if($last24h['high'] == NULL) {
                 $last24h['high'] = $before24h['price'];
@@ -121,15 +131,15 @@ class Tickers {
                     WHERE pairid = :pairid
                     RETURNING *';
             
-            $q2 = $pdo -> prepare($sql);
+            $q2 = $this -> pdo -> prepare($sql);
             $q2 -> execute($task);
-            $row = $q2 -> fetch(PDO::FETCH_ASSOC);
+            $row = $q2 -> fetch();
             
             if($row) {
                 emitAggTicker($row);
             }
             else {
-                if($debug) echo "Need to insert\n";
+                $this -> log -> info('Inserting new pair: '.$pair['pairid']);
                 
                 $task = array(
                     ':pairid' => $pair['pairid']
@@ -139,7 +149,7 @@ class Tickers {
                         FROM spot_trades_with_initial
                         WHERE pairid = :pairid";
                 
-                $q2 = $pdo -> prepare($sql);
+                $q2 = $this -> pdo -> prepare($sql);
                 $q2 -> execute($task);
                 $lastEver = $q2 -> fetch(PDO::FETCH_ASSOC);
                 
@@ -177,37 +187,34 @@ class Tickers {
                             :init5
                         )';
                 
-                $q2 = $pdo -> prepare($sql);
+                $q2 = $this -> pdo -> prepare($sql);
                 $q2 -> execute($task);
             }
         }
         
-        if($redis) {
-            $redis -> unlink($redis -> keys('spot:markets:*'));
-        }
+        $this -> redis -> keys('spot:markets:*') -> then(
+            function($keys) use($th)
+                $th -> redis -> unlink(...$keys);
+            }
+        );
     }
     
-    function emitAggTicker($tickRow) {
-        global $channel;
-        
-        $headers = new Wire\AMQPTable([
-            'event' => 'aggTicker',
-            'pairid' => $tickRow['pairid'],
-        ]);
-        
-        $body = array(
-            'price' => $tickRow['price'],
-            'change' => $tickRow['change'],
-            'previous' => $tickRow['previous'],
-            'high' => $tickRow['high'],
-            'low' => $tickRow['low'],
-            'vol_base' => $tickRow['vol_base'],
-            'vol_quote' => $tickRow['vol_quote']
+    private function emitAggTicker($tickRow) {
+        $this -> amqp -> pub(
+            'agg_ticker',
+            [
+                'price' => $tickRow['price'],
+                'change' => $tickRow['change'],
+                'previous' => $tickRow['previous'],
+                'high' => $tickRow['high'],
+                'low' => $tickRow['low'],
+                'vol_base' => $tickRow['vol_base'],
+                'vol_quote' => $tickRow['vol_quote']
+            ],
+            [
+                'pairid' => $tickRow['pairid']
+            ]
         );
-        
-        $outMsg = new AMQPMessage(json_encode($body, JSON_PRETTY_PRINT));
-        $outMsg -> set('application_headers', $headers);
-        $channel -> basic_publish($outMsg, 'outEvents');
     }
 }
 

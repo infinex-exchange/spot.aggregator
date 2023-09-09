@@ -3,36 +3,32 @@
 class Trades {
     private $loop;
     private $log;
-    private $pdo;
     private $redis;
     
-    function __construct($loop, $log, $pdo, $redis) {
+    function __construct($loop, $log, $redis) {
         $this -> loop = $loop;
         $this -> log = $log;
-        $this -> pdo = $pdo;
         $this -> redis = $redis;
         
         $this -> log -> debug('Initialized trades module');
     }
     
-    function updateTrades($pairid) {
-        global $debug, $redis;
-        
-        if($debug) echo "Update trades $pairid\n";
-        
-        if($redis) {
-            $redis -> unlink($redis -> keys('spot:trades:'.$pairid.':*'));
-        }
+    public function updateTrades($pairid) {
+        $this -> redis -> keys('spot:trades:'.$pairid.':*') -> then(
+            function($keys) use($th)
+                $th -> redis -> unlink(...$keys);
+            }
+        );
     }
     
-    function rebuildTrades() {
-        global $debug, $redis;
+    public function rebuildTrades() {
+        $this -> log -> info('Rebuilding all trades');
         
-        if($debug) echo "Rebuilding trades\n";
-        
-        if($redis) {
-            $redis -> unlink($redis -> keys('spot:trades:*'));
-        }
+        $this -> redis -> keys('spot:trades:*') -> then(
+            function($keys) use($th)
+                $th -> redis -> unlink(...$keys);
+            }
+        );
     }
 }
 

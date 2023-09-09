@@ -3,15 +3,15 @@
 class EventHandler {
     private $loop;
     private $log;
-    private $ticker;
-    private $orderbook;
+    private $tickers;
+    private $orderbooks;
     private $trades;
     
-    function __construct($loop, $log, $ticker, $orderbook, $trades) {
+    function __construct($loop, $log, $tickers, $orderbooks, $trades) {
         $this -> loop = $loop;
         $this -> log = $log;
-        $this -> ticker = $ticker;
-        $this -> orderbook = $orderbook;
+        $this -> tickers = $tickers;
+        $this -> orderbooks = $orderbooks;
         $this -> trades = $trades;
         
         $this -> log -> debug('Initialized matching engine event handler');
@@ -51,14 +51,14 @@ class EventHandler {
     }
     
     function onTrade($body, $headers) {
-        $this -> ticker -> updateMarket($headers['pairid'], $body['price'], $body['amount'], $body['total']);
-        $this -> orderbook -> updateOrderbook($headers['pairid'], $body['makerSide'], $body['price'], '-', $body['amount']);
+        $this -> tickers -> updateMarket($headers['pairid'], $body['price'], $body['amount'], $body['total']);
+        $this -> orderbooks -> updateOrderbook($headers['pairid'], $body['makerSide'], $body['price'], '-', $body['amount']);
         $this -> trades -> updateTrades($headers['pairid']);
     }
     
     function onOrderAccepted($body, $headers) {
         if(isset($body['rest']))
-            $this -> orderbook -> updateOrderbook($headers['pairid'], $body['side'], $body['price'], '+', $body['rest']);
+            $this -> orderbooks -> updateOrderbook($headers['pairid'], $body['side'], $body['price'], '+', $body['rest']);
     }
     
     function onOrderUpdate($body, $headers) {
@@ -70,7 +70,7 @@ class EventHandler {
             $sign = '-';
         
         if($sign !== NULL)
-            $this -> orderbook -> updateOrderbook($headers['pairid'], $body['side'], $body['price'], $sign, $body['amount']);
+            $this -> orderbooks -> updateOrderbook($headers['pairid'], $body['side'], $body['price'], $sign, $body['amount']);
     }
 }
 

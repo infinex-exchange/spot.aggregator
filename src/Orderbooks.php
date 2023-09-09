@@ -1,6 +1,6 @@
 <?php
 
-class Orderbook {
+class Orderbooks {
     private $loop;
     private $log;
     private $pdo;
@@ -16,11 +16,7 @@ class Orderbook {
     }
 
     public function updateOrderbook($pairid, $side, $price, $sign, $amount) {
-        global $debug, $pdo, $redis;
-        
-        if($sign != '-' && $sign != '+') return;
-        
-        $pdo -> beginTransaction();
+        $this -> pdo -> beginTransaction();
          
         $task = array(
             ':pairid' => $pairid,
@@ -36,7 +32,7 @@ class Orderbook {
                 AND price = :price
                 RETURNING amount';
         
-        $q = $pdo -> prepare($sql);
+        $q = $this -> pdo -> prepare($sql);
         $q -> execute($task);
         $row = $q -> fetch(PDO::FETCH_ASSOC);
         
@@ -85,11 +81,11 @@ class Orderbook {
                         :amount
                     )';
             
-            $q = $pdo -> prepare($sql);
+            $q = $this -> pdo -> prepare($sql);
             $q -> execute($task);
         }
         
-        $pdo -> commit();
+        $this -> pdo -> commit();
         
         $this -> redis -> unlink("spot:orderbook:$pairid:$side");
         
@@ -97,15 +93,13 @@ class Orderbook {
         
     }
     
-    function rebuildOrderbook() {
-        global $debug, $pdo, $redis;
+    function rebuildOrderbooks() {
+        $this -> log -> info('Rebuilding all orderbooks');
         
-        if($debug) echo "Rebuilding orderbook\n";
-        
-        $pdo -> beginTransaction();
+        $this -> pdo -> beginTransaction();
         
         $sql = 'TRUNCATE TABLE spot_aggregated_orderbook_v2';
-        $pdo -> query($sql);
+        $this -> pdo -> query($sql);
         
         $sql = 'INSERT INTO spot_aggregated_orderbook_v2(
                     pairid,
@@ -121,31 +115,30 @@ class Orderbook {
                 GROUP BY pairid,
                          side,
                          price';
-        $pdo -> query($sql);
+        $this -> pdo -> query($sql);
         
-        $pdo -> commit();
+        $this -> pdo -> commit();
         
-        if($redis)
-            $redis -> unlink($redis -> keys('spot:orderbook:*'));
+        $th = $this;
+        $this -> redis -> keys('spot:orderbook:*') -> then(
+            function($keys) use($th)
+                $th -> redis -> unlink(...$keys);
+            }
+        );
     }
     
     private function emitAggOrderbook($pairid, $side, $price, $amount) {
-        global $channel;
-        
-        $headers = new Wire\AMQPTable([
-            'event' => 'aggOrderbook',
-            'pairid' => $pairid,
-        ]);
-        
-        $body = array(
-            'side' => $side,
-            'price' => $price,
-            'amount' => $amount
+        $this -> amqp -> pub(
+            'agg_orderbook',
+            [
+                'side' => $side,
+                'price' => $price,
+                'amount' => $amount
+            ],
+            [
+                'pairid' => $pairid
+            ]
         );
-        
-        $outMsg = new AMQPMessage(json_encode($body, JSON_PRETTY_PRINT));
-        $outMsg -> set('application_headers', $headers);
-        $channel -> basic_publish($outMsg, 'outEvents');
     }
 }
 
